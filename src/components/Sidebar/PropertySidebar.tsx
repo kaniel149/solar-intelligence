@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { X, MapPin, Zap, Sun, DollarSign, Ruler, Phone, Globe, ExternalLink, TrendingUp, Leaf, AlertCircle, Loader2, FileDown, Send, Check, MessageCircle, Search } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { X, MapPin, Zap, Sun, DollarSign, Ruler, Phone, Globe, ExternalLink, TrendingUp, Leaf, AlertCircle, Loader2, FileDown, Send, Check, MessageCircle, Search, ChevronRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAppStore } from '../../lib/store'
-import { pushToCrm, notifyNewLead, isCrmConnected } from '../../lib/crm-service'
+import { pushToCrm, isCrmConnected } from '../../lib/crm-service'
 import { openProposal } from '../../lib/open-proposal'
 import { calculateSolar } from '../../lib/solar-calc'
 import { REGIONS } from '../../lib/regions'
@@ -624,6 +625,7 @@ function EnrichButton({ property }: { property: import('../../types').Property }
 }
 
 function CrmPushButton({ property }: { property: import('../../types').Property }) {
+  const navigate = useNavigate()
   const user = useAppStore((s) => s.user)
   const setShowLoginModal = useAppStore((s) => s.setShowLoginModal)
   const crmBuildingIds = useAppStore((s) => s.crmBuildingIds)
@@ -632,12 +634,14 @@ function CrmPushButton({ property }: { property: import('../../types').Property 
 
   const [pushing, setPushing] = useState(false)
   const [pushed, setPushed] = useState(false)
+  const [pushedProjectId, setPushedProjectId] = useState<string | null>(null)
   const [error, setError] = useState('')
 
   const alreadyInCrm = crmBuildingIds.has(property.id)
 
   useEffect(() => {
     setPushed(false)
+    setPushedProjectId(null)
     setError('')
   }, [property.id])
 
@@ -653,8 +657,9 @@ function CrmPushButton({ property }: { property: import('../../types').Property 
       const project = await pushToCrm(property)
       if (project) {
         setPushed(true)
+        setPushedProjectId(project.id)
         setCrmProjects([project, ...crmProjects])
-        await notifyNewLead(project, property)
+        navigate(`/crm/leads/${project.id}`)
       }
     } catch (err: any) {
       setError(err.message || 'Failed to push to CRM')
@@ -664,11 +669,20 @@ function CrmPushButton({ property }: { property: import('../../types').Property 
   }
 
   if (alreadyInCrm || pushed) {
+    const matchingProject = crmProjects.find((p) => p.building_id === property.id)
+    const targetId = pushedProjectId ?? matchingProject?.id
     return (
-      <div className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#2ED89A]/15 text-[#2ED89A] text-sm font-medium border border-[#2ED89A]/20">
+      <button
+        onClick={() => {
+          if (targetId) navigate(`/crm/leads/${targetId}`)
+          else navigate('/crm/pipeline')
+        }}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#2ED89A]/15 text-[#2ED89A] text-sm font-medium border border-[#2ED89A]/20 hover:bg-[#2ED89A]/25 transition-colors"
+      >
         <Check size={16} />
         In CRM Pipeline
-      </div>
+        <ChevronRight size={14} className="ml-1" />
+      </button>
     )
   }
 

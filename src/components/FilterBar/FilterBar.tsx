@@ -1,5 +1,6 @@
 import { Search, Map, Satellite, Zap, ZapOff, SlidersHorizontal, X, Circle, Building2, LogIn, LogOut } from 'lucide-react'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAppStore } from '../../lib/store'
 import { supabase } from '../../lib/supabase'
 import { isCrmConnected } from '../../lib/crm-service'
@@ -154,16 +155,14 @@ export function FilterBar() {
         {/* CRM + Auth */}
         <div className="bg-[#0D2137]/90 backdrop-blur-xl rounded-xl border border-white/10 flex overflow-hidden">
           {isCrmConnected() && (
-            <button
-              onClick={() => setShowCrmPanel(!showCrmPanel)}
-              className={`px-3 py-2.5 transition-colors flex items-center gap-1.5 ${
-                showCrmPanel ? 'text-[#6366f1]' : 'text-white/60 hover:text-white hover:bg-white/5'
-              }`}
+            <Link
+              to="/crm"
+              className="px-3 py-2.5 transition-colors flex items-center gap-1.5 text-[#6366f1] hover:bg-[#6366f1]/10"
               title="CRM Pipeline"
             >
               <Building2 size={14} />
-              <span className="text-[11px] font-medium">CRM</span>
-            </button>
+              <span className="text-[11px] font-semibold">CRM</span>
+            </Link>
           )}
           {user ? (
             <button
