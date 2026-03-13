@@ -7,7 +7,6 @@ const DEFAULT_SYSTEM_LIFE_YEARS = 25
 const OM_COST_PCT = 0.01                   // 1% of EPC/year
 const CO2_KG_PER_KWH = 0.5                // Thailand grid emission factor
 const PANEL_WATT = 550
-const _PANEL_AREA_M2 = 2.0  // Used in external scripts
 
 // Monthly distribution factors for Thailand (relative to annual average)
 // Higher in dry season (Nov–Apr), lower in wet season (May–Oct)
