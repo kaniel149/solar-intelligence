@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, RefreshCw } from 'lucide-react'
 import { useAppStore } from '../../lib/store'
@@ -14,18 +14,9 @@ export default function Dashboard() {
   const crmLoading = useAppStore((s) => s.crmLoading)
   const navigate = useNavigate()
 
-  const [stats, setStats] = useState<CrmStats>({
-    total: 0,
-    byStatus: {},
-    totalKwp: 0,
-    totalDealValue: 0,
-    conversionRate: 0,
-    urgentCount: 0,
-  })
   const [refreshing, setRefreshing] = useState(false)
 
-  // Calculate stats from projects in store
-  useEffect(() => {
+  const stats = useMemo<CrmStats>(() => {
     const byStatus: Record<string, number> = {}
     let totalKwp = 0
     let totalDealValue = 0
@@ -40,14 +31,14 @@ export default function Dashboard() {
       if (p.step_number >= 4) contractOrBeyond++
     }
 
-    setStats({
+    return {
       total: crmProjects.length,
       byStatus,
       totalKwp,
       totalDealValue,
       conversionRate: crmProjects.length > 0 ? contractOrBeyond / crmProjects.length : 0,
       urgentCount,
-    })
+    }
   }, [crmProjects])
 
   const handleRefresh = async () => {

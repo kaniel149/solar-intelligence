@@ -15,16 +15,16 @@ export function CRMPanel() {
   const [loading, setLoading] = useState(false)
   const [activeStatus, setActiveStatus] = useState<ProjectStatus | 'all'>('all')
 
-  useEffect(() => {
-    if (showCrmPanel && user) loadProjects()
-  }, [showCrmPanel, user])
-
   const loadProjects = async () => {
     setLoading(true)
     const projects = await getCrmProjects()
     setCrmProjects(projects)
     setLoading(false)
   }
+
+  useEffect(() => {
+    if (showCrmPanel && user) loadProjects()
+  }, [showCrmPanel, user])
 
   const handleStatusChange = async (projectId: string, newStatus: ProjectStatus) => {
     const statusStep = CRM_STATUSES.find(s => s.id === newStatus)?.step ?? 1
