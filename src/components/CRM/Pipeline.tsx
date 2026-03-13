@@ -123,7 +123,7 @@ function NewLeadModal({
   onSubmit,
 }: {
   onClose: () => void
-  onSubmit: (data: CrmProjectInsert) => void
+  onSubmit: (data: CrmProjectInsert) => Promise<void>
 }) {
   const [name, setName] = useState('')
   const [businessType, setBusinessType] = useState('')
@@ -132,23 +132,30 @@ function NewLeadModal({
   const [address, setAddress] = useState('')
   const [source, setSource] = useState('manual')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) return
     setLoading(true)
-    await onSubmit({
-      client_name: name.trim(),
-      business_type: businessType || undefined,
-      client_phone: phone || undefined,
-      client_email: email || undefined,
-      property_address: address || undefined,
-      source,
-      status: 'lead',
-      step_number: 1,
-      priority: 'normal',
-    })
-    setLoading(false)
+    setError('')
+    try {
+      await onSubmit({
+        client_name: name.trim(),
+        business_type: businessType || undefined,
+        client_phone: phone || undefined,
+        client_email: email || undefined,
+        property_address: address || undefined,
+        source,
+        status: 'lead',
+        step_number: 1,
+        priority: 'normal',
+      })
+    } catch (err: any) {
+      setError(err.message || 'Failed to create lead')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -211,6 +218,12 @@ function NewLeadModal({
               <option value="organic">Organic</option>
             </select>
           </div>
+
+          {error && (
+            <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+              {error}
+            </div>
+          )}
 
           <button
             type="submit"

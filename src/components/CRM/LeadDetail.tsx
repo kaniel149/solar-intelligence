@@ -52,7 +52,7 @@ export default function LeadDetail() {
     })
 
     getProjectActivity(id).then(setActivities)
-  }, [id, crmProjects])
+  }, [id])
 
   const handleStatusChange = async (status: ProjectStatus) => {
     if (!project) return
@@ -76,9 +76,16 @@ export default function LeadDetail() {
   const handleSaveEdit = async () => {
     if (!project) return
     setSaving(true)
-    // Strip null values for CrmProjectInsert compatibility
+    const editable = {
+      client_name: editData.client_name,
+      business_type: editData.business_type,
+      client_phone: editData.client_phone,
+      client_email: editData.client_email,
+      property_address: editData.property_address,
+    }
+    // Remove undefined values
     const cleaned = Object.fromEntries(
-      Object.entries(editData).filter(([, v]) => v !== undefined)
+      Object.entries(editable).filter(([, v]) => v !== undefined)
     )
     await updateProject(project.id, cleaned as any)
     setProject({ ...project, ...editData } as CrmProject)

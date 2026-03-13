@@ -4,6 +4,7 @@ import { Plus, ArrowRight, Edit3, Clock } from 'lucide-react'
 import { getRecentActivity } from '../../lib/crm-service'
 import { STATUS_MAP } from '../../types/crm'
 import type { ActivityEntry, CrmProject } from '../../types/crm'
+import { useAppStore } from '../../lib/store'
 
 type ActivityWithProject = ActivityEntry & { project?: Pick<CrmProject, 'id' | 'client_name' | 'status'> }
 
@@ -29,12 +30,13 @@ export function ActivityFeed() {
   const [activities, setActivities] = useState<ActivityWithProject[]>([])
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
+  const projectCount = useAppStore((s) => s.crmProjects.length)
 
   useEffect(() => {
     getRecentActivity(20)
       .then((data) => setActivities(data as ActivityWithProject[]))
       .finally(() => setLoading(false))
-  }, [])
+  }, [projectCount])
 
   return (
     <div className="bg-white/5 rounded-2xl border border-white/10 p-5">
