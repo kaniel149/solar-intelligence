@@ -76,8 +76,12 @@ export default function LeadDetail() {
   const handleSaveEdit = async () => {
     if (!project) return
     setSaving(true)
-    await updateProject(project.id, editData)
-    setProject({ ...project, ...editData })
+    // Strip null values for CrmProjectInsert compatibility
+    const cleaned = Object.fromEntries(
+      Object.entries(editData).filter(([, v]) => v !== undefined)
+    )
+    await updateProject(project.id, cleaned as any)
+    setProject({ ...project, ...editData } as CrmProject)
     setEditing(false)
     setEditData({})
     setSaving(false)

@@ -43,8 +43,6 @@ export function FilterBar() {
   const stats = useAppStore((s) => s.stats)
   const user = useAppStore((s) => s.user)
   const setShowLoginModal = useAppStore((s) => s.setShowLoginModal)
-  const setShowCrmPanel = useAppStore((s) => s.setShowCrmPanel)
-  const showCrmPanel = useAppStore((s) => s.showCrmPanel)
   const filteredProperties = useFilteredProperties()
   const [showFilters, setShowFilters] = useState(false)
 
