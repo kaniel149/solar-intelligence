@@ -1,57 +1,112 @@
-// Matches Solaris CRM project schema (005_create_projects_table.sql)
+// TM Energy CRM — 10-step solar pipeline
 
 export type ProjectStatus =
   | 'lead'
-  | 'onboarding'
-  | 'licensing'
-  | 'measurements'
-  | 'ordering'
+  | 'evaluation'
+  | 'proposal'
+  | 'contract'
+  | 'design'
+  | 'survey'
+  | 'survey_approval'
+  | 'pea'
   | 'installation'
-  | 'iec_sync'
-  | 'grid_connection'
-  | 'monitoring'
-  | 'cemetery'
+  | 'om'
 
 export type ProjectPriority = 'low' | 'normal' | 'high' | 'urgent'
+export type DealType = 'epc' | 'ppa'
 
 export interface CrmProject {
   id: string
   client_name: string
+  business_type: string | null
   client_phone: string | null
   client_email: string | null
-  client_address: string | null
   property_address: string | null
-  system_size_dc_kw: number | null
-  panel_count: number | null
-  roof_area_sqm: number | null
-  status: ProjectStatus
-  priority: ProjectPriority
-  assigned_to: string | null
-  notes: string | null
+  building_id: string | null
   lat: number | null
   lng: number | null
+  status: ProjectStatus
+  step_number: number
+  priority: ProjectPriority
+  system_size_kwp: number | null
+  panel_count: number | null
+  panel_model: string | null
+  inverter_model: string | null
+  battery_model: string | null
+  annual_production: number | null
+  deal_value: number | null
+  deal_type: DealType | null
+  monthly_consumption: number | null
+  electricity_rate: number | null
+  payback_years: number | null
+  roof_type: string | null
+  roof_condition: string | null
+  roof_area_m2: number | null
+  usable_area_m2: number | null
+  roof_angle: number | null
+  roof_direction: string | null
+  electrical_phase: string | null
+  shading_notes: string | null
   source: string | null
+  assigned_to: string | null
+  notes: string | null
+  created_by: string | null
   created_at: string
   updated_at: string
 }
 
 export interface CrmProjectInsert {
   client_name: string
+  business_type?: string
   client_phone?: string
   client_email?: string
-  client_address?: string
   property_address?: string
-  system_size_dc_kw?: number
-  system_size_ac_kw?: number
+  building_id?: string
+  lat?: number
+  lng?: number
+  status?: ProjectStatus
+  step_number?: number
+  priority?: ProjectPriority
+  system_size_kwp?: number
   panel_count?: number
-  roof_area_sqm?: number
-  status: ProjectStatus
-  priority: ProjectPriority
-  notes?: string
+  panel_model?: string
+  inverter_model?: string
+  battery_model?: string
+  annual_production?: number
+  deal_value?: number
+  deal_type?: DealType
+  monthly_consumption?: number
+  electricity_rate?: number
+  payback_years?: number
+  roof_type?: string
+  roof_condition?: string
+  roof_area_m2?: number
+  usable_area_m2?: number
+  roof_angle?: number
+  roof_direction?: string
+  electrical_phase?: string
+  shading_notes?: string
   source?: string
-  // Custom fields for Solar Intelligence
-  estimated_yearly_revenue?: number
-  purchase_price?: number
+  assigned_to?: string
+  notes?: string
+  created_by?: string
+}
+
+export interface ActivityEntry {
+  id: string
+  project_id: string
+  user_id: string | null
+  action: string
+  details: Record<string, unknown> | null
+  created_at: string
+}
+
+export interface UserProfile {
+  id: string
+  full_name: string
+  role: 'admin' | 'sales' | 'viewer'
+  avatar_url: string | null
+  created_at: string
 }
 
 export interface StatusInfo {
@@ -59,25 +114,31 @@ export interface StatusInfo {
   label: string
   labelShort: string
   color: string
-  order: number
+  step: number
 }
 
 export const CRM_STATUSES: StatusInfo[] = [
-  { id: 'lead', label: 'Lead + Proposal', labelShort: 'Lead', color: '#6366f1', order: 1 },
-  { id: 'onboarding', label: 'Onboarding + Contract', labelShort: 'Onboarding', color: '#8b5cf6', order: 2 },
-  { id: 'licensing', label: 'Permits + Confirm PV', labelShort: 'Permits', color: '#ec4899', order: 3 },
-  { id: 'measurements', label: 'Measurements + Design', labelShort: 'Measure', color: '#f97316', order: 4 },
-  { id: 'ordering', label: 'Equipment Ordering', labelShort: 'Ordering', color: '#eab308', order: 5 },
-  { id: 'installation', label: 'Installation', labelShort: 'Install', color: '#22c55e', order: 6 },
-  { id: 'iec_sync', label: 'Sync + Inspections', labelShort: 'Sync', color: '#0ea5e9', order: 7 },
-  { id: 'grid_connection', label: 'Grid Connection', labelShort: 'Grid', color: '#3b82f6', order: 8 },
-  { id: 'monitoring', label: 'Monitoring', labelShort: 'Monitor', color: '#10b981', order: 9 },
-  { id: 'cemetery', label: 'Cemetery', labelShort: 'Cemetery', color: '#6b7280', order: 99 },
+  { id: 'lead',             label: 'Lead Capture',      labelShort: 'Lead',       color: '#3B82F6', step: 1 },
+  { id: 'evaluation',       label: 'Evaluation',        labelShort: 'Eval',       color: '#8B5CF6', step: 2 },
+  { id: 'proposal',         label: 'Proposal',          labelShort: 'Proposal',   color: '#F59E0B', step: 3 },
+  { id: 'contract',         label: 'Contract',          labelShort: 'Contract',   color: '#10B981', step: 4 },
+  { id: 'design',           label: 'Detailed Design',   labelShort: 'Design',     color: '#06B6D4', step: 5 },
+  { id: 'survey',           label: 'Site Survey',       labelShort: 'Survey',     color: '#EC4899', step: 6 },
+  { id: 'survey_approval',  label: 'Survey Approval',   labelShort: 'Approval',   color: '#F97316', step: 7 },
+  { id: 'pea',              label: 'PEA Submission',    labelShort: 'PEA',        color: '#6366F1', step: 8 },
+  { id: 'installation',     label: 'Installation',      labelShort: 'Install',    color: '#14B8A6', step: 9 },
+  { id: 'om',               label: 'O&M',              labelShort: 'O&M',        color: '#22C55E', step: 10 },
 ]
+
+export const STATUS_MAP = Object.fromEntries(
+  CRM_STATUSES.map((s) => [s.id, s])
+) as Record<ProjectStatus, StatusInfo>
 
 export interface CrmStats {
   total: number
-  byStatus: Record<ProjectStatus, number>
-  totalKw: number
+  byStatus: Partial<Record<ProjectStatus, number>>
+  totalKwp: number
+  totalDealValue: number
+  conversionRate: number
   urgentCount: number
 }

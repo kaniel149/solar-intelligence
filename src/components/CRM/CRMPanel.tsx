@@ -27,7 +27,8 @@ export function CRMPanel() {
   }
 
   const handleStatusChange = async (projectId: string, newStatus: ProjectStatus) => {
-    await updateProjectStatus(projectId, newStatus)
+    const statusStep = CRM_STATUSES.find(s => s.id === newStatus)?.step ?? 1
+    await updateProjectStatus(projectId, newStatus, statusStep)
     await loadProjects()
   }
 
@@ -82,7 +83,7 @@ export function CRMPanel() {
           active={activeStatus === 'all'}
           onClick={() => setActiveStatus('all')}
         />
-        {CRM_STATUSES.filter((s) => s.id !== 'cemetery').map((s) => (
+        {CRM_STATUSES.filter((s) => s.id !== 'om').map((s) => (
           <StatusTab
             key={s.id}
             label={s.labelShort}
@@ -196,8 +197,8 @@ function ProjectCard({
       </div>
 
       <div className="flex items-center gap-3 text-[10px] text-white/50">
-        {project.system_size_dc_kw && (
-          <span>{project.system_size_dc_kw} kWp</span>
+        {project.system_size_kwp && (
+          <span>{project.system_size_kwp} kWp</span>
         )}
         {project.panel_count && (
           <span>{project.panel_count} panels</span>

@@ -48,6 +48,8 @@ interface AppState {
   setShowCrmPanel: (show: boolean) => void
   crmBuildingIds: Set<string>
   updateCrmBuildingIds: () => void
+  crmLoading: boolean
+  setCrmLoading: (loading: boolean) => void
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -159,11 +161,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { crmProjects } = get()
     const ids = new Set<string>()
     for (const p of crmProjects) {
-      if (p.notes) {
-        const match = p.notes.match(/Building ID: (\S+)/)
-        if (match) ids.add(match[1])
-      }
+      if (p.building_id) ids.add(p.building_id)
     }
     set({ crmBuildingIds: ids })
   },
+  crmLoading: false,
+  setCrmLoading: (loading) => set({ crmLoading: loading }),
 }))

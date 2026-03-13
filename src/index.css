@@ -1,18 +1,38 @@
 @import "tailwindcss";
 
-@keyframes loading {
-  0% { width: 0%; }
-  50% { width: 70%; }
-  100% { width: 100%; }
+@theme {
+  --font-serif: 'Instrument Serif', serif;
+  --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --color-ocean: #0A3D5C;
+  --color-ocean-light: #0E4D73;
+  --color-gold: #E8A820;
+  --color-gold-light: #F0C04A;
+  --color-green: #1B5E20;
+  --color-green-light: #2E7D32;
+  --color-sand: #FFF8E7;
+  --color-dark: #0D1117;
+  --color-navy: #0D2137;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 html, body, #root {
   margin: 0;
   padding: 0;
-  height: 100%;
+  min-height: 100%;
   width: 100%;
+  font-family: var(--font-sans);
+  background: var(--color-dark);
+  color: white;
+}
+
+/* Platform page (GIS) needs fixed dimensions */
+.platform-layout {
+  height: 100vh;
+  width: 100vw;
   overflow: hidden;
-  font-family: 'DM Sans', 'Heebo', system-ui, -apple-system, sans-serif;
 }
 
 /* MapLibre overrides */

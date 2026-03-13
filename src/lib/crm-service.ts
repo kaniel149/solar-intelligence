@@ -1,33 +1,40 @@
 import { supabase, isCrmConnected } from './supabase'
 import type { Property } from '../types'
-import type { CrmProject, CrmProjectInsert, CrmStats, ProjectStatus } from '../types/crm'
+import type {
+  CrmProject,
+  CrmProjectInsert,
+  CrmStats,
+  ProjectStatus,
+  ActivityEntry,
+} from '../types/crm'
 
-// ── Push building from map to CRM as lead ──
-export async function pushToCrm(property: Property, _assignedTo?: string): Promise<CrmProject | null> {
+// ── Push building from scanner to CRM ──
+export async function pushToCrm(property: Property): Promise<CrmProject | null> {
   if (!supabase) return null
 
   const insert: CrmProjectInsert = {
     client_name: property.ownerName || property.title || `Building at ${property.lat.toFixed(4)}, ${property.lng.toFixed(4)}`,
+    business_type: property.category || undefined,
     client_phone: property.phone || undefined,
     client_email: property.email || undefined,
     property_address: property.location || undefined,
-    system_size_dc_kw: property.capacityKwp ? property.capacityKwp : undefined,
-    system_size_ac_kw: property.capacityKwp ? Math.round(property.capacityKwp * 0.9 * 10) / 10 : undefined,
-    panel_count: property.panelCount || undefined,
-    roof_area_sqm: property.area || undefined,
+    building_id: property.id,
+    lat: property.lat,
+    lng: property.lng,
     status: 'lead',
+    step_number: 1,
     priority: property.priority === 'A' ? 'high' : property.priority === 'B' ? 'normal' : 'low',
+    system_size_kwp: property.capacityKwp || undefined,
+    panel_count: property.panelCount || undefined,
+    roof_area_m2: property.area || undefined,
+    usable_area_m2: property.area ? property.area * 0.7 : undefined,
+    source: 'scanner',
     notes: [
-      `Source: Solar Intelligence Platform`,
-      `Building ID: ${property.id}`,
+      `Source: Solar Intelligence Scanner`,
       `Region: ${property.region}`,
-      property.category ? `Category: ${property.category}` : '',
       property.solarScore ? `Solar Score: ${property.solarScore}/100` : '',
-      property.gridProximity ? `Grid: ${property.gridProximity.grade} (${property.gridProximity.distanceMeters.toFixed(0)}m from ${property.gridProximity.nearestFeatureName})` : '',
+      property.gridProximity ? `Grid: ${property.gridProximity.grade} (${property.gridProximity.distanceMeters.toFixed(0)}m)` : '',
     ].filter(Boolean).join('\n'),
-    source: 'solar-intelligence',
-    estimated_yearly_revenue: property.annualSavings || undefined,
-    purchase_price: property.epcCost || undefined,
   }
 
   const { data, error } = await supabase
@@ -41,7 +48,33 @@ export async function pushToCrm(property: Property, _assignedTo?: string): Promi
     throw new Error(error.message)
   }
 
+  if (data) {
+    await logActivity(data.id, 'lead_created', {
+      source: 'scanner',
+      building_id: property.id,
+    })
+  }
+
   return data as CrmProject
+}
+
+// ── Create lead manually ──
+export async function createLead(data: CrmProjectInsert): Promise<CrmProject | null> {
+  if (!supabase) return null
+
+  const { data: project, error } = await supabase
+    .from('projects')
+    .insert({ ...data, status: data.status || 'lead', step_number: data.step_number || 1 })
+    .select()
+    .single()
+
+  if (error) throw new Error(error.message)
+
+  if (project) {
+    await logActivity(project.id, 'lead_created', { source: data.source || 'manual' })
+  }
+
+  return project as CrmProject
 }
 
 // ── Fetch all CRM projects ──
@@ -51,7 +84,8 @@ export async function getCrmProjects(): Promise<CrmProject[]> {
   const { data, error } = await supabase
     .from('projects')
     .select('*')
-    .order('created_at', { ascending: false })
+    .order('step_number', { ascending: true })
+    .order('updated_at', { ascending: false })
 
   if (error) {
     console.error('CRM fetch failed:', error)
@@ -61,105 +95,157 @@ export async function getCrmProjects(): Promise<CrmProject[]> {
   return (data || []) as CrmProject[]
 }
 
-// ── Fetch CRM projects by status ──
-export async function getCrmProjectsByStatus(status: ProjectStatus): Promise<CrmProject[]> {
-  if (!supabase) return []
+// ── Fetch single project ──
+export async function getCrmProject(id: string): Promise<CrmProject | null> {
+  if (!supabase) return null
 
   const { data, error } = await supabase
     .from('projects')
     .select('*')
-    .eq('status', status)
-    .order('created_at', { ascending: false })
+    .eq('id', id)
+    .single()
 
-  if (error) return []
-  return (data || []) as CrmProject[]
+  if (error) return null
+  return data as CrmProject
 }
 
-// ── Update project status ──
-export async function updateProjectStatus(projectId: string, status: ProjectStatus): Promise<boolean> {
+// ── Update project status (move in pipeline) ──
+export async function updateProjectStatus(
+  projectId: string,
+  status: ProjectStatus,
+  stepNumber: number
+): Promise<boolean> {
   if (!supabase) return false
 
   const { error } = await supabase
     .from('projects')
-    .update({ status, updated_at: new Date().toISOString() })
+    .update({ status, step_number: stepNumber })
     .eq('id', projectId)
 
   if (error) {
     console.error('Status update failed:', error)
     return false
   }
+
+  await logActivity(projectId, 'status_change', { status, step_number: stepNumber })
   return true
 }
 
-// ── Assign project to team member ──
-export async function assignProject(projectId: string, userId: string): Promise<boolean> {
+// ── Update project fields ──
+export async function updateProject(
+  projectId: string,
+  updates: Partial<CrmProjectInsert>
+): Promise<boolean> {
   if (!supabase) return false
 
   const { error } = await supabase
     .from('projects')
-    .update({ assigned_to: userId, updated_at: new Date().toISOString() })
+    .update(updates)
+    .eq('id', projectId)
+
+  if (error) {
+    console.error('Project update failed:', error)
+    return false
+  }
+
+  await logActivity(projectId, 'project_updated', { fields: Object.keys(updates) })
+  return true
+}
+
+// ── Delete project ──
+export async function deleteProject(projectId: string): Promise<boolean> {
+  if (!supabase) return false
+
+  const { error } = await supabase
+    .from('projects')
+    .delete()
     .eq('id', projectId)
 
   return !error
 }
 
-// ── Get CRM stats ──
+// ── Activity log ──
+export async function logActivity(
+  projectId: string,
+  action: string,
+  details?: Record<string, unknown>
+): Promise<void> {
+  if (!supabase) return
+
+  const { data: { user } } = await supabase.auth.getUser()
+
+  await supabase.from('activity_log').insert({
+    project_id: projectId,
+    user_id: user?.id || null,
+    action,
+    details: details || null,
+  })
+}
+
+export async function getProjectActivity(projectId: string): Promise<ActivityEntry[]> {
+  if (!supabase) return []
+
+  const { data } = await supabase
+    .from('activity_log')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('created_at', { ascending: false })
+    .limit(50)
+
+  return (data || []) as ActivityEntry[]
+}
+
+export async function getRecentActivity(limit = 20): Promise<(ActivityEntry & { project?: CrmProject })[]> {
+  if (!supabase) return []
+
+  const { data } = await supabase
+    .from('activity_log')
+    .select('*, project:projects(id, client_name, status)')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  return (data || []) as (ActivityEntry & { project?: CrmProject })[]
+}
+
+// ── Stats ──
 export async function getCrmStats(): Promise<CrmStats> {
   const projects = await getCrmProjects()
 
-  const byStatus: Record<string, number> = {}
-  let totalKw = 0
+  const byStatus: Partial<Record<ProjectStatus, number>> = {}
+  let totalKwp = 0
+  let totalDealValue = 0
   let urgentCount = 0
+  let contractOrBeyond = 0
 
   for (const p of projects) {
     byStatus[p.status] = (byStatus[p.status] || 0) + 1
-    totalKw += p.system_size_dc_kw || 0
+    totalKwp += p.system_size_kwp || 0
+    totalDealValue += p.deal_value || 0
     if (p.priority === 'urgent' || p.priority === 'high') urgentCount++
+    if (p.step_number >= 4) contractOrBeyond++
   }
 
   return {
     total: projects.length,
-    byStatus: byStatus as Record<ProjectStatus, number>,
-    totalKw,
+    byStatus,
+    totalKwp,
+    totalDealValue,
+    conversionRate: projects.length > 0 ? contractOrBeyond / projects.length : 0,
     urgentCount,
   }
 }
 
-// ── Check if a building is already in CRM (by coordinates) ──
-export async function findExistingLead(lat: number, _lng: number): Promise<CrmProject | null> {
+// ── Find by building ID ──
+export async function findByBuildingId(buildingId: string): Promise<CrmProject | null> {
   if (!supabase) return null
 
-  // Search by notes field containing the building coordinates
   const { data } = await supabase
     .from('projects')
     .select('*')
-    .ilike('notes', `%${lat.toFixed(4)}%`)
+    .eq('building_id', buildingId)
     .limit(1)
 
-  return data?.[0] as CrmProject | null
-}
-
-// ── Send WhatsApp notification for new lead ──
-export async function notifyNewLead(project: CrmProject, property: Property): Promise<void> {
-  try {
-    const message = [
-      `*New Solar Lead* from Intelligence Platform`,
-      ``,
-      `*${project.client_name}*`,
-      property.location ? `Location: ${property.location}` : '',
-      project.system_size_dc_kw ? `System: ${project.system_size_dc_kw} kWp` : '',
-      project.panel_count ? `Panels: ${project.panel_count}` : '',
-      property.annualSavings ? `Est. savings: ${property.annualSavings.toLocaleString()} THB/yr` : '',
-      property.priority ? `Priority: Grade ${property.priority}` : '',
-      ``,
-      `View in CRM →`,
-    ].filter(Boolean).join('\n')
-
-    // Try to send via WhatsApp MCP if available, otherwise just log
-    console.log('WhatsApp notification:', message)
-  } catch (e) {
-    console.error('WhatsApp notification failed:', e)
-  }
+  return (data?.[0] as CrmProject) || null
 }
 
 export { isCrmConnected }
