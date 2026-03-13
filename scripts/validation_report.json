@@ -1,0 +1,29 @@
+{
+  "input_count": 15898,
+  "phases": {
+    "dedup": {
+      "input": 15898,
+      "exact_dupes": 0,
+      "proximity_dupes": 4,
+      "output": 15894,
+      "removed_pct": 0.0
+    },
+    "validate": {
+      "self_validated": true,
+      "output": 15894
+    },
+    "discover": {
+      "tiles_scanned": 500,
+      "total_tiles": 500,
+      "discovered": 11
+    }
+  },
+  "output_count": 15905,
+  "priority_distribution": {
+    "C": 5493,
+    "D": 6573,
+    "B": 3283,
+    "A": 556
+  },
+  "total_mwp": 261.5
+}

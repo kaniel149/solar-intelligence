@@ -1,0 +1,386 @@
+import { Search, Map, Satellite, Zap, ZapOff, SlidersHorizontal, X, Circle } from 'lucide-react'
+import { useState } from 'react'
+import { useAppStore } from '../../lib/store'
+import { REGIONS } from '../../lib/regions'
+import { useFilteredProperties, SYSTEM_SIZE_RANGES } from '../../hooks/useFilteredProperties'
+import type { GridGrade, RoofPriority, SystemSizeRange, CategoryFilter } from '../../types'
+
+const PRIORITY_CONFIG: Record<RoofPriority, { label: string; color: string; bg: string }> = {
+  A: { label: 'A — Hot Lead', color: '#2ED89A', bg: '#2ED89A22' },
+  B: { label: 'B — Warm', color: '#E8A820', bg: '#E8A82022' },
+  C: { label: 'C — Potential', color: '#E87D20', bg: '#E87D2022' },
+  D: { label: 'D — Low', color: '#E85D3A', bg: '#E85D3A22' },
+}
+
+const SIZE_CONFIG: Record<SystemSizeRange, { label: string; desc: string }> = {
+  all: { label: 'All', desc: '' },
+  micro: { label: '<5', desc: 'kWp' },
+  small: { label: '5-20', desc: 'kWp' },
+  medium: { label: '20-100', desc: 'kWp' },
+  large: { label: '100-500', desc: 'kWp' },
+  utility: { label: '500+', desc: 'kWp' },
+}
+
+const CATEGORY_CONFIG: Record<CategoryFilter, { label: string; icon: string }> = {
+  all: { label: 'All', icon: '' },
+  residential: { label: 'Residential', icon: '🏠' },
+  commercial: { label: 'Commercial', icon: '🏢' },
+  hospitality: { label: 'Hotel/Resort', icon: '🏨' },
+  mixed: { label: 'Mixed Use', icon: '🏬' },
+  other: { label: 'Other', icon: '📍' },
+}
+
+export function FilterBar() {
+  const filters = useAppStore((s) => s.filters)
+  const setFilter = useAppStore((s) => s.setFilter)
+  const setRegion = useAppStore((s) => s.setRegion)
+  const setActiveTab = useAppStore((s) => s.setActiveTab)
+  const mapStyle = useAppStore((s) => s.mapStyle)
+  const toggleMapStyle = useAppStore((s) => s.toggleMapStyle)
+  const stats = useAppStore((s) => s.stats)
+  const filteredProperties = useFilteredProperties()
+  const [showFilters, setShowFilters] = useState(false)
+
+  const hasActiveFilters = filters.priority !== 'all' || filters.systemSize !== 'all' || filters.categoryFilter !== 'all'
+  const filteredCount = filteredProperties.length
+
+  return (
+    <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none">
+      {/* Top bar */}
+      <div className="pointer-events-auto mx-4 mt-4 flex items-center gap-3">
+        {/* Logo & Title */}
+        <div className="bg-[#0D2137]/90 backdrop-blur-xl rounded-xl px-4 py-2.5 border border-white/10 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#E8A820] to-[#E85D3A] flex items-center justify-center text-sm font-bold">
+            ☀
+          </div>
+          <div>
+            <h1 className="text-sm font-semibold text-white leading-tight">Solar Intelligence</h1>
+            <p className="text-[10px] text-white/50">TM Energy Platform</p>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="bg-[#0D2137]/90 backdrop-blur-xl rounded-xl border border-white/10 flex overflow-hidden">
+          <TabButton
+            active={filters.activeTab === 'rooftops'}
+            onClick={() => setActiveTab('rooftops')}
+            icon="🏠"
+            label="Rooftops"
+          />
+          <TabButton
+            active={filters.activeTab === 'community-solar'}
+            onClick={() => setActiveTab('community-solar')}
+            icon="🌾"
+            label="Community Solar"
+          />
+        </div>
+
+        {/* Region selector */}
+        <div className="bg-[#0D2137]/90 backdrop-blur-xl rounded-xl border border-white/10 flex overflow-hidden">
+          {Object.values(REGIONS).map((r) => (
+            <button
+              key={r.id}
+              onClick={() => setRegion(r.id)}
+              className={`px-3 py-2.5 text-xs font-medium transition-colors ${
+                filters.region === r.id
+                  ? 'bg-[#E8A820]/20 text-[#E8A820]'
+                  : 'text-white/60 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              {r.nameEn}
+            </button>
+          ))}
+        </div>
+
+        {/* Search */}
+        <div className="bg-[#0D2137]/90 backdrop-blur-xl rounded-xl border border-white/10 flex items-center px-3 gap-2 flex-1 max-w-xs">
+          <Search size={14} className="text-white/40" />
+          <input
+            type="text"
+            placeholder="Search properties..."
+            value={filters.searchQuery}
+            onChange={(e) => setFilter('searchQuery', e.target.value)}
+            className="bg-transparent text-white text-xs py-2.5 w-full outline-none placeholder:text-white/30"
+          />
+        </div>
+
+        {/* Map controls + filter toggle */}
+        <div className="bg-[#0D2137]/90 backdrop-blur-xl rounded-xl border border-white/10 flex overflow-hidden">
+          <button
+            onClick={toggleMapStyle}
+            className="px-3 py-2.5 text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+            title={mapStyle === 'satellite' ? 'Switch to Street' : 'Switch to Satellite'}
+          >
+            {mapStyle === 'satellite' ? <Map size={14} /> : <Satellite size={14} />}
+          </button>
+          <button
+            onClick={() => setFilter('showGrid', !filters.showGrid)}
+            className={`px-3 py-2.5 transition-colors ${
+              filters.showGrid ? 'text-[#E8A820]' : 'text-white/40 hover:text-white'
+            }`}
+            title="Toggle Grid"
+          >
+            {filters.showGrid ? <Zap size={14} /> : <ZapOff size={14} />}
+          </button>
+          <button
+            onClick={() => setFilter('showBufferZones', !filters.showBufferZones)}
+            className={`px-3 py-2.5 transition-colors ${
+              filters.showBufferZones ? 'text-[#2ED89A]' : 'text-white/40 hover:text-white'
+            }`}
+            title="Toggle Buffer Zones"
+          >
+            <Circle size={14} />
+          </button>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`px-3 py-2.5 transition-colors relative ${
+              showFilters || hasActiveFilters ? 'text-[#2ED89A]' : 'text-white/40 hover:text-white'
+            }`}
+            title="Filters"
+          >
+            <SlidersHorizontal size={14} />
+            {hasActiveFilters && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#2ED89A]" />
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Stats bar */}
+      <div className="pointer-events-auto mx-4 mt-2 bg-[#0D2137]/80 backdrop-blur-xl rounded-xl border border-white/10 px-4 py-2 flex items-center gap-6">
+        <Stat label="Showing" value={filteredCount} />
+        <Stat label="Roofs" value={stats.totalRoofs} color="#2ED89A" />
+        <Stat label="Land Plots" value={stats.totalLands} color="#E8A820" />
+        <Stat label="For Sale" value={stats.forSale} color="#00aaff" />
+        {stats.totalMwp > 0 && (
+          <Stat label="Total MWp" value={stats.totalMwp} color="#ff8800" />
+        )}
+
+        {/* Quick priority badges for rooftops */}
+        {filters.activeTab === 'rooftops' && (
+          <div className="ml-auto flex items-center gap-1.5">
+            <span className="text-[10px] text-white/40 uppercase tracking-wider mr-1">Lead Quality:</span>
+            {(['all', 'A', 'B', 'C', 'D'] as const).map((grade) => (
+              <button
+                key={grade}
+                onClick={() => setFilter('priority', grade as RoofPriority | 'all')}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${
+                  filters.priority === grade
+                    ? 'scale-110'
+                    : 'opacity-60 hover:opacity-100'
+                }`}
+                style={
+                  grade !== 'all'
+                    ? {
+                        backgroundColor: filters.priority === grade
+                          ? PRIORITY_CONFIG[grade].bg
+                          : 'transparent',
+                        color: PRIORITY_CONFIG[grade].color,
+                        border: filters.priority === grade
+                          ? `1px solid ${PRIORITY_CONFIG[grade].color}44`
+                          : '1px solid transparent',
+                      }
+                    : {
+                        backgroundColor: filters.priority === 'all' ? 'rgba(255,255,255,0.15)' : 'transparent',
+                        color: filters.priority === 'all' ? '#fff' : 'rgba(255,255,255,0.4)',
+                      }
+                }
+              >
+                {grade === 'all' ? 'All' : grade}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Grid grade for community solar */}
+        {filters.activeTab === 'community-solar' && (
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-[10px] text-white/40 uppercase tracking-wider">Grid Grade:</span>
+            {(['all', 'A', 'B', 'C', 'D'] as const).map((grade) => (
+              <button
+                key={grade}
+                onClick={() => setFilter('gridGrade', grade as GridGrade | 'all')}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${
+                  filters.gridGrade === grade
+                    ? grade === 'all'
+                      ? 'bg-white/20 text-white'
+                      : 'text-white'
+                    : 'text-white/40 hover:text-white/70'
+                }`}
+                style={
+                  filters.gridGrade === grade && grade !== 'all'
+                    ? {
+                        backgroundColor: { A: '#2ED89A33', B: '#E8A82033', C: '#E87D2033', D: '#E85D3A33' }[grade],
+                        color: { A: '#2ED89A', B: '#E8A820', C: '#E87D20', D: '#E85D3A' }[grade],
+                      }
+                    : undefined
+                }
+              >
+                {grade === 'all' ? 'All' : grade}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Expanded filter panel */}
+      {showFilters && filters.activeTab === 'rooftops' && (
+        <div className="pointer-events-auto mx-4 mt-2 bg-[#0D2137]/90 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-semibold text-white/70 uppercase tracking-wider">Advanced Filters</h3>
+            <div className="flex items-center gap-2">
+              {hasActiveFilters && (
+                <button
+                  onClick={() => {
+                    setFilter('priority', 'all')
+                    setFilter('systemSize', 'all')
+                    setFilter('categoryFilter', 'all')
+                  }}
+                  className="text-[10px] text-[#E85D3A] hover:text-[#E85D3A]/80 transition-colors flex items-center gap-1"
+                >
+                  <X size={10} /> Clear all
+                </button>
+              )}
+              <button
+                onClick={() => setShowFilters(false)}
+                className="text-white/40 hover:text-white transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            {/* System Size */}
+            <div>
+              <label className="text-[10px] text-white/50 uppercase tracking-wider mb-2 block">
+                System Size (kWp)
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {(Object.entries(SIZE_CONFIG) as [SystemSizeRange, typeof SIZE_CONFIG['all']][]).map(
+                  ([key, config]) => (
+                    <button
+                      key={key}
+                      onClick={() => setFilter('systemSize', key)}
+                      className={`px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all border ${
+                        filters.systemSize === key
+                          ? 'bg-[#2ED89A]/15 text-[#2ED89A] border-[#2ED89A]/30'
+                          : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10 hover:text-white/70'
+                      }`}
+                    >
+                      {config.label}
+                      {config.desc && <span className="text-[9px] ml-0.5 opacity-60">{config.desc}</span>}
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="text-[10px] text-white/50 uppercase tracking-wider mb-2 block">
+                Building Type
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {(Object.entries(CATEGORY_CONFIG) as [CategoryFilter, typeof CATEGORY_CONFIG['all']][]).map(
+                  ([key, config]) => (
+                    <button
+                      key={key}
+                      onClick={() => setFilter('categoryFilter', key)}
+                      className={`px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all border ${
+                        filters.categoryFilter === key
+                          ? 'bg-[#E8A820]/15 text-[#E8A820] border-[#E8A820]/30'
+                          : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10 hover:text-white/70'
+                      }`}
+                    >
+                      {config.icon && <span className="mr-1">{config.icon}</span>}
+                      {config.label}
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+
+            {/* Lead Quality (bigger version with labels) */}
+            <div>
+              <label className="text-[10px] text-white/50 uppercase tracking-wider mb-2 block">
+                Lead Quality
+              </label>
+              <div className="flex flex-col gap-1">
+                {(Object.entries(PRIORITY_CONFIG) as [RoofPriority, typeof PRIORITY_CONFIG['A']][]).map(
+                  ([grade, config]) => (
+                    <button
+                      key={grade}
+                      onClick={() =>
+                        setFilter('priority', filters.priority === grade ? 'all' : grade)
+                      }
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all border text-left ${
+                        filters.priority === grade
+                          ? 'border-opacity-40'
+                          : 'bg-white/5 border-white/10 hover:bg-white/10'
+                      }`}
+                      style={{
+                        backgroundColor:
+                          filters.priority === grade ? config.bg : undefined,
+                        color: config.color,
+                        borderColor:
+                          filters.priority === grade ? `${config.color}44` : undefined,
+                      }}
+                    >
+                      {config.label}
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function TabButton({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean
+  onClick: () => void
+  icon: string
+  label: string
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-4 py-2.5 text-xs font-medium transition-colors flex items-center gap-1.5 ${
+        active
+          ? 'bg-[#2ED89A]/15 text-[#2ED89A]'
+          : 'text-white/50 hover:text-white hover:bg-white/5'
+      }`}
+    >
+      <span>{icon}</span>
+      {label}
+    </button>
+  )
+}
+
+function Stat({
+  label,
+  value,
+  color,
+}: {
+  label: string
+  value: number
+  color?: string
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-lg font-bold" style={{ color: color || '#fff' }}>
+        {typeof value === 'number' && value % 1 !== 0 ? value.toFixed(1) : value.toLocaleString()}
+      </span>
+      <span className="text-[10px] text-white/40 uppercase tracking-wider">{label}</span>
+    </div>
+  )
+}
