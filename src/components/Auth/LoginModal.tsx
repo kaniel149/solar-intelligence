@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, LogIn, UserPlus } from 'lucide-react'
+import { X, LogIn } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAppStore } from '../../lib/store'
 

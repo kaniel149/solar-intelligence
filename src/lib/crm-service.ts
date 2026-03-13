@@ -3,7 +3,7 @@ import type { Property } from '../types'
 import type { CrmProject, CrmProjectInsert, CrmStats, ProjectStatus } from '../types/crm'
 
 // ── Push building from map to CRM as lead ──
-export async function pushToCrm(property: Property, assignedTo?: string): Promise<CrmProject | null> {
+export async function pushToCrm(property: Property, _assignedTo?: string): Promise<CrmProject | null> {
   if (!supabase) return null
 
   const insert: CrmProjectInsert = {
@@ -126,7 +126,7 @@ export async function getCrmStats(): Promise<CrmStats> {
 }
 
 // ── Check if a building is already in CRM (by coordinates) ──
-export async function findExistingLead(lat: number, lng: number): Promise<CrmProject | null> {
+export async function findExistingLead(lat: number, _lng: number): Promise<CrmProject | null> {
   if (!supabase) return null
 
   // Search by notes field containing the building coordinates
