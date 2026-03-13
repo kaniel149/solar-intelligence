@@ -45,22 +45,47 @@ function PageRoutes() {
   )
 }
 
+/** Detect if we're on the CRM subdomain */
+const isCrmDomain = window.location.hostname === 'crm.energy-tm.com'
+
 export default function App() {
+  // crm.energy-tm.com → show only platform + CRM (no marketing site)
+  if (isCrmDomain) {
+    return (
+      <HelmetProvider>
+        <BrowserRouter>
+          <LanguageProvider>
+            <Suspense fallback={<LoadingScreen />}>
+              <Routes>
+                <Route path="/crm" element={<CRMPage />}>
+                  <Route index element={<CRMDashboard />} />
+                  <Route path="pipeline" element={<CRMPipeline />} />
+                  <Route path="leads/:id" element={<LeadDetail />} />
+                </Route>
+                <Route path="*" element={<PlatformPage />} />
+              </Routes>
+            </Suspense>
+          </LanguageProvider>
+        </BrowserRouter>
+      </HelmetProvider>
+    )
+  }
+
+  // energy-tm.com → marketing website
   return (
     <HelmetProvider>
       <BrowserRouter>
-        {/* LanguageProvider must be inside BrowserRouter so it can read useLocation */}
         <LanguageProvider>
           <Suspense fallback={<LoadingScreen />}>
             <Routes>
-              {/* CRM routes */}
+              {/* CRM routes (also accessible via /crm on main domain) */}
               <Route path="/crm" element={<CRMPage />}>
                 <Route index element={<CRMDashboard />} />
                 <Route path="pipeline" element={<CRMPipeline />} />
                 <Route path="leads/:id" element={<LeadDetail />} />
               </Route>
 
-              {/* Internal platform — no language, no marketing layout */}
+              {/* Internal platform */}
               <Route path="/platform" element={<PlatformPage />} />
 
               {/* Thai routes */}
