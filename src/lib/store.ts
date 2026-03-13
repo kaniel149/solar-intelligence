@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import type { FilterState, Property, Region, ActiveTab } from '../types'
+import type { CrmProject } from '../types/crm'
+import type { User } from '@supabase/supabase-js'
 
 interface AppState {
   // Filters
@@ -32,6 +34,20 @@ interface AppState {
     totalMwp: number
   }
   updateStats: () => void
+
+  // Auth
+  user: User | null
+  setUser: (user: User | null) => void
+  showLoginModal: boolean
+  setShowLoginModal: (show: boolean) => void
+
+  // CRM
+  crmProjects: CrmProject[]
+  setCrmProjects: (projects: CrmProject[]) => void
+  showCrmPanel: boolean
+  setShowCrmPanel: (show: boolean) => void
+  crmBuildingIds: Set<string>
+  updateCrmBuildingIds: () => void
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -122,5 +138,32 @@ export const useAppStore = create<AppState>((set, get) => ({
         totalMwp: Math.round(totalMwp * 10) / 10,
       },
     })
+  },
+
+  // Auth
+  user: null,
+  setUser: (user) => set({ user }),
+  showLoginModal: false,
+  setShowLoginModal: (show) => set({ showLoginModal: show }),
+
+  // CRM
+  crmProjects: [],
+  setCrmProjects: (projects) => {
+    set({ crmProjects: projects })
+    get().updateCrmBuildingIds()
+  },
+  showCrmPanel: false,
+  setShowCrmPanel: (show) => set({ showCrmPanel: show }),
+  crmBuildingIds: new Set(),
+  updateCrmBuildingIds: () => {
+    const { crmProjects } = get()
+    const ids = new Set<string>()
+    for (const p of crmProjects) {
+      if (p.notes) {
+        const match = p.notes.match(/Building ID: (\S+)/)
+        if (match) ids.add(match[1])
+      }
+    }
+    set({ crmBuildingIds: ids })
   },
 }))

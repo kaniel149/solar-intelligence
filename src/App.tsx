@@ -2,13 +2,30 @@ import { useEffect, useState } from 'react'
 import { SolarMap } from './components/Map/SolarMap'
 import { FilterBar } from './components/FilterBar/FilterBar'
 import { PropertySidebar } from './components/Sidebar/PropertySidebar'
+import { LoginModal } from './components/Auth/LoginModal'
+import { CRMPanel } from './components/CRM/CRMPanel'
 import { useAppStore } from './lib/store'
+import { supabase } from './lib/supabase'
 import { loadGridData, loadRoofData, loadLandData, enrichWithGridProximity } from './lib/load-data'
 
 export default function App() {
   const setProperties = useAppStore((s) => s.setProperties)
   const setGridData = useAppStore((s) => s.setGridData)
+  const setUser = useAppStore((s) => s.setUser)
   const [dataStatus, setDataStatus] = useState<'loading' | 'loaded' | 'error'>('loading')
+
+  // Auth listener
+  useEffect(() => {
+    if (!supabase) return
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+    // Check existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+    })
+    return () => subscription.unsubscribe()
+  }, [setUser])
 
   useEffect(() => {
     async function init() {
@@ -37,6 +54,8 @@ export default function App() {
       <SolarMap />
       <FilterBar />
       <PropertySidebar />
+      <CRMPanel />
+      <LoginModal />
 
       {/* Data loading indicator */}
       {dataStatus === 'loading' && (

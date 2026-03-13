@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react'
-import { X, MapPin, Zap, Sun, DollarSign, Ruler, Phone, Globe, ExternalLink, TrendingUp, Leaf, AlertCircle, Loader2, FileDown } from 'lucide-react'
+import { X, MapPin, Zap, Sun, DollarSign, Ruler, Phone, Globe, ExternalLink, TrendingUp, Leaf, AlertCircle, Loader2, FileDown, Send, Check, MessageCircle, Search } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAppStore } from '../../lib/store'
+import { pushToCrm, notifyNewLead, isCrmConnected } from '../../lib/crm-service'
+import { openProposal } from '../../lib/open-proposal'
 import { calculateSolar } from '../../lib/solar-calc'
 import { REGIONS } from '../../lib/regions'
 import { fetchSolarIrradiance, type NasaPowerData } from '../../lib/nasa-power'
 import { calculateFinancials, type FinancialAnalysis } from '../../lib/financial-calc'
 import { generateProposal } from '../../lib/generate-proposal'
+import { enrichFromPlaces, isEnrichmentAvailable } from '../../lib/enrich-building'
+import { openLineChat, buildProposalMessage, isLineConfigured } from '../../lib/line-service'
 
 const GRADE_COLORS: Record<string, { bg: string; text: string; label: string }> = {
   A: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: 'Excellent — minimal infrastructure' },
@@ -344,45 +348,107 @@ export function PropertySidebar() {
             </div>
           )}
 
-          {/* Contact */}
-          {(property.phone || property.website || property.email) && (
-            <div className="rounded-xl border border-white/10 p-3">
-              <h3 className="text-xs font-semibold text-white/70 uppercase tracking-wider mb-2">Contact</h3>
-              {property.ownerName && (
-                <p className="text-white text-xs mb-1">{property.ownerName}</p>
+          {/* Contact + Enrichment */}
+          <div className="rounded-xl border border-white/10 p-3">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs font-semibold text-white/70 uppercase tracking-wider">Contact</h3>
+              {isEnrichmentAvailable() && !property.ownerName && (
+                <EnrichButton property={property} />
               )}
-              <div className="flex gap-2 flex-wrap">
-                {property.phone && (
-                  <a href={`tel:${property.phone}`} className="flex items-center gap-1 text-[11px] text-[#2ED89A] hover:underline">
-                    <Phone size={10} /> {property.phone}
-                  </a>
-                )}
-                {property.website && (
-                  <a href={property.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[11px] text-[#00aaff] hover:underline">
-                    <Globe size={10} /> Website
-                  </a>
-                )}
-              </div>
+            </div>
+            {property.ownerName ? (
+              <>
+                <p className="text-white text-xs mb-1">{property.ownerName}</p>
+                <div className="flex gap-2 flex-wrap">
+                  {property.phone && (
+                    <a href={`tel:${property.phone}`} className="flex items-center gap-1 text-[11px] text-[#2ED89A] hover:underline">
+                      <Phone size={10} /> {property.phone}
+                    </a>
+                  )}
+                  {property.website && (
+                    <a href={property.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[11px] text-[#00aaff] hover:underline">
+                      <Globe size={10} /> Website
+                    </a>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p className="text-white/30 text-[11px]">
+                {isEnrichmentAvailable() ? 'Click Enrich to find owner info' : 'No contact info — set VITE_GOOGLE_PLACES_API_KEY to enable enrichment'}
+              </p>
+            )}
+          </div>
+
+          {/* LINE / WhatsApp Quick Contact */}
+          {(property.phone || isLineConfigured()) && financial && (
+            <div className="flex gap-2">
+              {isLineConfigured() && (
+                <button
+                  onClick={() => {
+                    const msg = buildProposalMessage({
+                      clientName: property.ownerName || property.title,
+                      capacityKwp: financial.capacityKwp,
+                      annualSavings: financial.annualSavingsYear1,
+                      paybackYears: financial.paybackYears,
+                      proposalRef: `TM-${property.id.slice(0, 6).toUpperCase()}`,
+                    })
+                    openLineChat(msg)
+                  }}
+                  className="flex-1 py-2 rounded-xl bg-[#06C755]/20 border border-[#06C755]/30 text-[#06C755] text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-[#06C755]/30 transition-colors"
+                >
+                  <MessageCircle size={14} />
+                  LINE
+                </button>
+              )}
+              {property.phone && (
+                <a
+                  href={`https://wa.me/${property.phone.replace(/[^0-9]/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-2 rounded-xl bg-[#25D366]/20 border border-[#25D366]/30 text-[#25D366] text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-[#25D366]/30 transition-colors"
+                >
+                  <Phone size={14} />
+                  WhatsApp
+                </a>
+              )}
             </div>
           )}
 
           {/* Generate Proposal */}
           {financial && !nasaLoading && (
-            <button
-              onClick={() =>
-                generateProposal({
-                  property,
-                  financial,
-                  nasaData: nasaData ?? undefined,
-                  regionName: regionConfig.nameEn,
-                })
-              }
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-[#E8A820] to-[#E85D3A] text-white font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-            >
-              <FileDown size={16} />
-              Generate Solar Proposal (PDF)
-            </button>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() =>
+                  openProposal({
+                    property,
+                    financial,
+                    regionId: region,
+                  })
+                }
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-[#E8A820] to-[#E85D3A] text-white font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+              >
+                <Send size={16} />
+                Full Sales Proposal
+              </button>
+              <button
+                onClick={() =>
+                  generateProposal({
+                    property,
+                    financial,
+                    nasaData: nasaData ?? undefined,
+                    regionName: regionConfig.nameEn,
+                  })
+                }
+                className="w-full py-2 rounded-xl bg-white/5 border border-white/10 text-white/70 text-xs flex items-center justify-center gap-2 hover:bg-white/10 transition-colors"
+              >
+                <FileDown size={14} />
+                Quick Report (PDF)
+              </button>
+            </div>
           )}
+
+          {/* Push to CRM */}
+          {isCrmConnected() && <CrmPushButton property={property} />}
 
           {/* Listing Link */}
           {property.listingLink && (
@@ -511,6 +577,112 @@ function ImpactStat({
         {value}
       </p>
       {sub && <p className="text-[9px] text-white/30">{sub}</p>}
+    </div>
+  )
+}
+
+function EnrichButton({ property }: { property: import('../../types').Property }) {
+  const [loading, setLoading] = useState(false)
+  const setProperties = useAppStore((s) => s.setProperties)
+  const properties = useAppStore((s) => s.properties)
+
+  const handleEnrich = async () => {
+    setLoading(true)
+    try {
+      const result = await enrichFromPlaces(property.lat, property.lng)
+      if (result?.name) {
+        const updated = properties.map((p) =>
+          p.id === property.id
+            ? {
+                ...p,
+                ownerName: result.name || p.ownerName,
+                phone: result.phone || p.phone,
+                website: result.website || p.website,
+                category: result.category || p.category,
+              }
+            : p
+        )
+        setProperties(updated)
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <button
+      onClick={handleEnrich}
+      disabled={loading}
+      className="flex items-center gap-1 text-[10px] text-[#E8A820] hover:text-[#E8A820]/80 transition-colors disabled:opacity-50"
+    >
+      {loading ? <Loader2 size={10} className="animate-spin" /> : <Search size={10} />}
+      Enrich
+    </button>
+  )
+}
+
+function CrmPushButton({ property }: { property: import('../../types').Property }) {
+  const user = useAppStore((s) => s.user)
+  const setShowLoginModal = useAppStore((s) => s.setShowLoginModal)
+  const crmBuildingIds = useAppStore((s) => s.crmBuildingIds)
+  const setCrmProjects = useAppStore((s) => s.setCrmProjects)
+  const crmProjects = useAppStore((s) => s.crmProjects)
+
+  const [pushing, setPushing] = useState(false)
+  const [pushed, setPushed] = useState(false)
+  const [error, setError] = useState('')
+
+  const alreadyInCrm = crmBuildingIds.has(property.id)
+
+  useEffect(() => {
+    setPushed(false)
+    setError('')
+  }, [property.id])
+
+  const handlePush = async () => {
+    if (!user) {
+      setShowLoginModal(true)
+      return
+    }
+
+    setPushing(true)
+    setError('')
+    try {
+      const project = await pushToCrm(property)
+      if (project) {
+        setPushed(true)
+        setCrmProjects([project, ...crmProjects])
+        await notifyNewLead(project, property)
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to push to CRM')
+    } finally {
+      setPushing(false)
+    }
+  }
+
+  if (alreadyInCrm || pushed) {
+    return (
+      <div className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#2ED89A]/15 text-[#2ED89A] text-sm font-medium border border-[#2ED89A]/20">
+        <Check size={16} />
+        In CRM Pipeline
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <button
+        onClick={handlePush}
+        disabled={pushing}
+        className="w-full py-2.5 rounded-xl bg-[#6366f1]/20 text-[#6366f1] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#6366f1]/30 border border-[#6366f1]/20 transition-all disabled:opacity-50"
+      >
+        {pushing ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+        {user ? 'Push to CRM' : 'Sign in to Push to CRM'}
+      </button>
+      {error && <p className="text-[#E85D3A] text-[10px] mt-1 text-center">{error}</p>}
     </div>
   )
 }

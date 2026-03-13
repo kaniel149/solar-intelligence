@@ -1,6 +1,8 @@
-import { Search, Map, Satellite, Zap, ZapOff, SlidersHorizontal, X, Circle } from 'lucide-react'
+import { Search, Map, Satellite, Zap, ZapOff, SlidersHorizontal, X, Circle, Building2, LogIn, LogOut } from 'lucide-react'
 import { useState } from 'react'
 import { useAppStore } from '../../lib/store'
+import { supabase } from '../../lib/supabase'
+import { isCrmConnected } from '../../lib/crm-service'
 import { REGIONS } from '../../lib/regions'
 import { useFilteredProperties } from '../../hooks/useFilteredProperties'
 import type { GridGrade, RoofPriority, SystemSizeRange, CategoryFilter } from '../../types'
@@ -38,6 +40,10 @@ export function FilterBar() {
   const mapStyle = useAppStore((s) => s.mapStyle)
   const toggleMapStyle = useAppStore((s) => s.toggleMapStyle)
   const stats = useAppStore((s) => s.stats)
+  const user = useAppStore((s) => s.user)
+  const setShowLoginModal = useAppStore((s) => s.setShowLoginModal)
+  const setShowCrmPanel = useAppStore((s) => s.setShowCrmPanel)
+  const showCrmPanel = useAppStore((s) => s.showCrmPanel)
   const filteredProperties = useFilteredProperties()
   const [showFilters, setShowFilters] = useState(false)
 
@@ -143,6 +149,43 @@ export function FilterBar() {
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#2ED89A]" />
             )}
           </button>
+        </div>
+
+        {/* CRM + Auth */}
+        <div className="bg-[#0D2137]/90 backdrop-blur-xl rounded-xl border border-white/10 flex overflow-hidden">
+          {isCrmConnected() && (
+            <button
+              onClick={() => setShowCrmPanel(!showCrmPanel)}
+              className={`px-3 py-2.5 transition-colors flex items-center gap-1.5 ${
+                showCrmPanel ? 'text-[#6366f1]' : 'text-white/60 hover:text-white hover:bg-white/5'
+              }`}
+              title="CRM Pipeline"
+            >
+              <Building2 size={14} />
+              <span className="text-[11px] font-medium">CRM</span>
+            </button>
+          )}
+          {user ? (
+            <button
+              onClick={async () => {
+                await supabase?.auth.signOut()
+              }}
+              className="px-3 py-2.5 text-white/60 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-1.5"
+              title="Sign Out"
+            >
+              <LogOut size={14} />
+              <span className="text-[11px] font-medium truncate max-w-[80px]">{user.email?.split('@')[0]}</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowLoginModal(true)}
+              className="px-3 py-2.5 text-white/60 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-1.5"
+              title="Sign In"
+            >
+              <LogIn size={14} />
+              <span className="text-[11px] font-medium">Sign In</span>
+            </button>
+          )}
         </div>
       </div>
 

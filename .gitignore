@@ -30,3 +30,4 @@ scripts/tile_cache/
 public/data/buildings_all_original.json
 public/data/overture_buildings.geojson
 .vercel
+.env
