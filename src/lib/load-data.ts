@@ -1,7 +1,7 @@
 import type { Property, Region } from '../types'
 import { calculateGridProximity } from './solar-calc'
 
-const COPENHAGEN_SOLAR_BASE = 'https://kaniel149.github.io/copenhagen-solar'
+// All data now served locally from /public/data/
 
 interface BuildingLocal {
   id: string
@@ -28,7 +28,7 @@ interface BuildingLocal {
 }
 
 export async function loadGridData(): Promise<GeoJSON.FeatureCollection> {
-  const response = await fetch(`${COPENHAGEN_SOLAR_BASE}/gis-mapper/grid-data/grid_all.geojson?v=2`)
+  const response = await fetch('/data/grid_all.geojson')
   if (!response.ok) throw new Error(`Grid data: ${response.status}`)
   return response.json()
 }
@@ -65,7 +65,7 @@ export async function loadRoofData(): Promise<Property[]> {
 }
 
 export async function loadLandData(): Promise<Property[]> {
-  const response = await fetch(`${COPENHAGEN_SOLAR_BASE}/gis-mapper/data.geojson`)
+  const response = await fetch('/data/land_data.geojson')
   if (!response.ok) throw new Error(`Land data: ${response.status}`)
   const geojson: GeoJSON.FeatureCollection = await response.json()
 
