@@ -29,3 +29,4 @@ scripts/tile_cache/
 # Backup data
 public/data/buildings_all_original.json
 public/data/overture_buildings.geojson
+.vercel

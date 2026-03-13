@@ -2,7 +2,7 @@ import { Search, Map, Satellite, Zap, ZapOff, SlidersHorizontal, X, Circle } fro
 import { useState } from 'react'
 import { useAppStore } from '../../lib/store'
 import { REGIONS } from '../../lib/regions'
-import { useFilteredProperties, SYSTEM_SIZE_RANGES } from '../../hooks/useFilteredProperties'
+import { useFilteredProperties } from '../../hooks/useFilteredProperties'
 import type { GridGrade, RoofPriority, SystemSizeRange, CategoryFilter } from '../../types'
 
 const PRIORITY_CONFIG: Record<RoofPriority, { label: string; color: string; bg: string }> = {
