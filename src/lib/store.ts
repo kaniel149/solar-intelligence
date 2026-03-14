@@ -15,8 +15,8 @@ interface AppState {
   setSelectedProperty: (property: Property | null) => void
 
   // Map
-  mapStyle: 'satellite' | 'mapbox' | 'esri' | 'street'
-  setMapStyle: (style: 'satellite' | 'mapbox' | 'esri' | 'street') => void
+  mapStyle: 'sentinel2024' | 'satellite' | 'mapbox' | 'esri' | 'street'
+  setMapStyle: (style: AppState['mapStyle']) => void
   cycleMapStyle: () => void
 
   // Data
@@ -97,11 +97,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectedProperty: null,
   setSelectedProperty: (property) => set({ selectedProperty: property }),
 
-  mapStyle: 'mapbox',
+  mapStyle: 'sentinel2024',
   setMapStyle: (style) => set({ mapStyle: style }),
   cycleMapStyle: () =>
     set((state) => {
-      const order: Array<'mapbox' | 'satellite' | 'esri' | 'street'> = ['mapbox', 'satellite', 'esri', 'street']
+      const order: AppState['mapStyle'][] = ['sentinel2024', 'mapbox', 'satellite', 'esri', 'street']
       const idx = order.indexOf(state.mapStyle)
       return { mapStyle: order[(idx + 1) % order.length] }
     }),

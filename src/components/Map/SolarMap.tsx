@@ -8,14 +8,20 @@ import { REGIONS } from '../../lib/regions'
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || ''
 
 const TILE_SOURCES: Record<string, string[]> = {
+  sentinel2024: [
+    'https://a.tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg',
+    'https://b.tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg',
+    'https://c.tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg',
+    'https://d.tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg',
+  ],
+  mapbox: [
+    `https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}@2x.jpg90?access_token=${MAPBOX_TOKEN}`,
+  ],
   satellite: [
     'https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
     'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
     'https://mt2.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
     'https://mt3.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-  ],
-  mapbox: [
-    `https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}@2x.jpg90?access_token=${MAPBOX_TOKEN}`,
   ],
   esri: [
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',

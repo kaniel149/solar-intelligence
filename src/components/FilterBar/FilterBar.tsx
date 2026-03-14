@@ -114,11 +114,11 @@ export function FilterBar() {
           <button
             onClick={cycleMapStyle}
             className="px-3 py-2.5 text-white/60 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-1.5"
-            title={{ mapbox: 'Mapbox Satellite (HD)', satellite: 'Google Satellite', esri: 'ESRI World Imagery', street: 'Street Map' }[mapStyle]}
+            title={{ sentinel2024: 'Sentinel-2 (2024)', mapbox: 'Mapbox Satellite', satellite: 'Google Satellite', esri: 'ESRI World Imagery', street: 'Street Map' }[mapStyle]}
           >
-            {mapStyle === 'street' ? <Map size={14} /> : mapStyle === 'mapbox' ? <Globe size={14} /> : <Satellite size={14} />}
+            {mapStyle === 'street' ? <Map size={14} /> : mapStyle === 'sentinel2024' ? <Globe size={14} /> : <Satellite size={14} />}
             <span className="text-[10px] font-medium uppercase tracking-wider hidden sm:inline">
-              {{ mapbox: 'Mapbox', satellite: 'Google', esri: 'ESRI', street: 'Street' }[mapStyle]}
+              {{ sentinel2024: '2024', mapbox: 'Mapbox', satellite: 'Google', esri: 'ESRI', street: 'Street' }[mapStyle]}
             </span>
           </button>
           <button
