@@ -94,13 +94,10 @@ export default function CRMPage() {
   const setCrmProjects = useAppStore((s) => s.setCrmProjects)
   const setCrmLoading = useAppStore((s) => s.setCrmLoading)
 
-  // Auth listener
+  // Auth listener — onAuthStateChange fires INITIAL_SESSION immediately, no need for getSession()
   useEffect(() => {
     if (!supabase) return
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-    })
-    supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
     })
     return () => subscription.unsubscribe()

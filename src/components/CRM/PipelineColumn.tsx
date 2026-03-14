@@ -56,21 +56,6 @@ export function PipelineColumn({ status, projects, isActive }: PipelineColumnPro
         )}
       </div>
 
-      {/* Checklist progress indicator */}
-      {projects.length > 0 && (
-        <div className="px-3 py-1.5 flex items-center gap-2">
-          <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all"
-              style={{
-                width: '0%', // Populated when checklist data loads
-                backgroundColor: status.color,
-              }}
-            />
-          </div>
-          <span className="text-[9px] text-white/20">{status.checklist.length} tasks</span>
-        </div>
-      )}
     </div>
   )
 }

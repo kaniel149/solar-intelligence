@@ -87,25 +87,21 @@ export default function Pipeline() {
 
     const projectId = active.id as string
     const targetStatus = over.id as string
-
-    // Find the project and target status info
     const project = crmProjects.find((p) => p.id === projectId)
     const statusInfo = CRM_STATUSES.find((s) => s.id === targetStatus)
-
     if (!project || !statusInfo || project.status === targetStatus) return
 
-    // Optimistic update
+    const originalProjects = [...crmProjects]
     const updated = crmProjects.map((p) =>
       p.id === projectId ? { ...p, status: statusInfo.id, step_number: statusInfo.step } : p
     )
     setCrmProjects(updated as CrmProject[])
 
-    // Persist
-    const success = await updateProjectStatus(projectId, statusInfo.id, statusInfo.step)
-    if (!success) {
-      // Revert on failure
-      const projects = await getCrmProjects()
-      setCrmProjects(projects)
+    try {
+      const success = await updateProjectStatus(projectId, statusInfo.id, statusInfo.step)
+      if (!success) setCrmProjects(originalProjects)
+    } catch {
+      setCrmProjects(originalProjects)
     }
   }
 
@@ -122,7 +118,7 @@ export default function Pipeline() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-white/10 flex items-center gap-4">
+      <div className="px-6 py-4 border-b border-white/10 flex items-center gap-4 flex-wrap">
         <div className="flex-1">
           <h1 className="text-lg font-bold text-white">Pipeline</h1>
           <p className="text-xs text-white/40 mt-0.5">
@@ -138,7 +134,7 @@ export default function Pipeline() {
             value={filters.search}
             onChange={(e) => setFilters({ ...filters, search: e.target.value })}
             placeholder="Search leads..."
-            className="w-[220px] pl-9 pr-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20"
+            className="w-[180px] lg:w-[220px] pl-9 pr-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20"
           />
           {filters.search && (
             <button
@@ -351,8 +347,8 @@ function NewLeadModal({
         step_number: 1,
         priority: priority as CrmProjectInsert['priority'],
       })
-    } catch (err: any) {
-      setError(err.message || 'Failed to create lead')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create lead')
     } finally {
       setLoading(false)
     }

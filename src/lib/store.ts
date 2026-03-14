@@ -47,7 +47,7 @@ interface AppState {
   setCrmProjects: (projects: CrmProject[]) => void
   showCrmPanel: boolean
   setShowCrmPanel: (show: boolean) => void
-  crmBuildingIds: Set<string>
+  crmBuildingIds: Record<string, true>
   updateCrmBuildingIds: () => void
   crmLoading: boolean
   setCrmLoading: (loading: boolean) => void
@@ -160,12 +160,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   showCrmPanel: false,
   setShowCrmPanel: (show) => set({ showCrmPanel: show }),
-  crmBuildingIds: new Set(),
+  crmBuildingIds: {} as Record<string, true>,
   updateCrmBuildingIds: () => {
     const { crmProjects } = get()
-    const ids = new Set<string>()
+    const ids: Record<string, true> = {}
     for (const p of crmProjects) {
-      if (p.building_id) ids.add(p.building_id)
+      if (p.building_id) ids[p.building_id] = true
     }
     set({ crmBuildingIds: ids })
   },

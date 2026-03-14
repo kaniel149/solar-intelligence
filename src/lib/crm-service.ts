@@ -3,7 +3,6 @@ import type { Property } from '../types'
 import type {
   CrmProject,
   CrmProjectInsert,
-  CrmStats,
   ProjectStatus,
   ActivityEntry,
   ProjectChecklist,
@@ -26,10 +25,10 @@ export async function pushToCrm(property: Property): Promise<CrmProject | null> 
     status: 'lead',
     step_number: 1,
     priority: property.priority === 'A' ? 'high' : property.priority === 'B' ? 'normal' : 'low',
-    system_size_kwp: property.capacityKwp || undefined,
-    panel_count: property.panelCount || undefined,
-    roof_area_m2: property.area || undefined,
-    usable_area_m2: property.area ? property.area * 0.7 : undefined,
+    system_size_kwp: property.capacityKwp ?? undefined,
+    panel_count: property.panelCount ?? undefined,
+    roof_area_m2: property.area ?? undefined,
+    usable_area_m2: property.area != null ? property.area * 0.7 : undefined,
     source: 'scanner',
     notes: [
       `Source: Solar Intelligence Scanner`,
@@ -174,11 +173,11 @@ export async function logActivity(
 ): Promise<void> {
   if (!supabase) return
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { session } } = await supabase.auth.getSession()
 
   await supabase.from('activity_log').insert({
     project_id: projectId,
-    user_id: user?.id || null,
+    user_id: session?.user?.id || null,
     action,
     details: details || null,
   })
@@ -207,34 +206,6 @@ export async function getRecentActivity(limit = 20): Promise<(ActivityEntry & { 
     .limit(limit)
 
   return (data || []) as (ActivityEntry & { project?: CrmProject })[]
-}
-
-// ── Stats ──
-export async function getCrmStats(): Promise<CrmStats> {
-  const projects = await getCrmProjects()
-
-  const byStatus: Partial<Record<ProjectStatus, number>> = {}
-  let totalKwp = 0
-  let totalDealValue = 0
-  let urgentCount = 0
-  let contractOrBeyond = 0
-
-  for (const p of projects) {
-    byStatus[p.status] = (byStatus[p.status] || 0) + 1
-    totalKwp += p.system_size_kwp || 0
-    totalDealValue += p.deal_value || 0
-    if (p.priority === 'urgent' || p.priority === 'high') urgentCount++
-    if (p.step_number >= 4) contractOrBeyond++
-  }
-
-  return {
-    total: projects.length,
-    byStatus,
-    totalKwp,
-    totalDealValue,
-    conversionRate: projects.length > 0 ? contractOrBeyond / projects.length : 0,
-    urgentCount,
-  }
 }
 
 // ── Find by building ID ──
@@ -269,7 +240,7 @@ export async function toggleChecklistItem(
 ): Promise<boolean> {
   if (!supabase) return false
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { session } } = await supabase.auth.getSession()
 
   const { error } = await supabase
     .from('project_checklists')
@@ -278,7 +249,7 @@ export async function toggleChecklistItem(
       checklist_item_id: checklistItemId,
       completed,
       completed_at: completed ? new Date().toISOString() : null,
-      completed_by: completed ? user?.id || null : null,
+      completed_by: completed ? session?.user?.id || null : null,
     }, {
       onConflict: 'project_id,checklist_item_id',
     })

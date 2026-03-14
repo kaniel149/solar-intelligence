@@ -106,7 +106,7 @@ export function LeadCard({ project, isDragging }: LeadCardProps) {
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                window.open(`https://line.me/R/ti/p/${project.client_line_id}`, '_blank')
+                window.open(`https://line.me/R/ti/p/${encodeURIComponent(project.client_line_id!)}`, '_blank')
               }}
               className="p-1 rounded-md bg-[#00C300]/10 text-[#00C300] hover:bg-[#00C300]/20"
               title="LINE"

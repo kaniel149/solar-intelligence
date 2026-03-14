@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
 import Layout from './components/layout/Layout'
 import { LanguageProvider } from './i18n/LanguageContext'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 const HomePage = lazy(() => import('./pages/HomePage'))
 const ServicesPage = lazy(() => import('./pages/ServicesPage'))
@@ -57,7 +58,7 @@ export default function App() {
           <LanguageProvider>
             <Suspense fallback={<LoadingScreen />}>
               <Routes>
-                <Route path="/crm" element={<CRMPage />}>
+                <Route path="/crm" element={<ErrorBoundary><CRMPage /></ErrorBoundary>}>
                   <Route index element={<CRMDashboard />} />
                   <Route path="pipeline" element={<CRMPipeline />} />
                   <Route path="leads/:id" element={<LeadDetail />} />
@@ -79,7 +80,7 @@ export default function App() {
           <Suspense fallback={<LoadingScreen />}>
             <Routes>
               {/* CRM routes (also accessible via /crm on main domain) */}
-              <Route path="/crm" element={<CRMPage />}>
+              <Route path="/crm" element={<ErrorBoundary><CRMPage /></ErrorBoundary>}>
                 <Route index element={<CRMDashboard />} />
                 <Route path="pipeline" element={<CRMPipeline />} />
                 <Route path="leads/:id" element={<LeadDetail />} />

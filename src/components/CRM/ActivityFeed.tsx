@@ -1,30 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, ArrowRight, Edit3, Clock } from 'lucide-react'
+import { Clock } from 'lucide-react'
 import { getRecentActivity } from '../../lib/crm-service'
 import { STATUS_MAP } from '../../types/crm'
 import type { ActivityEntry, CrmProject } from '../../types/crm'
 import { useAppStore } from '../../lib/store'
+import { ACTION_CONFIG, timeAgo } from '../../lib/crm-utils'
 
 type ActivityWithProject = ActivityEntry & { project?: Pick<CrmProject, 'id' | 'client_name' | 'status'> }
-
-const ACTION_CONFIG: Record<string, { icon: typeof Plus; color: string; label: string }> = {
-  lead_created: { icon: Plus, color: '#3B82F6', label: 'New lead' },
-  status_change: { icon: ArrowRight, color: '#E8A820', label: 'Moved' },
-  project_updated: { icon: Edit3, color: '#8B5CF6', label: 'Updated' },
-}
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  const days = Math.floor(hrs / 24)
-  if (days < 7) return `${days}d ago`
-  return new Date(dateStr).toLocaleDateString()
-}
 
 export function ActivityFeed() {
   const [activities, setActivities] = useState<ActivityWithProject[]>([])

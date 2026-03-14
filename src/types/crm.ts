@@ -68,42 +68,10 @@ export interface CrmProject {
   updated_at: string
 }
 
-export interface CrmProjectInsert {
+export type CrmProjectInsert = Partial<
+  Omit<CrmProject, 'id' | 'created_at' | 'updated_at'>
+> & {
   client_name: string
-  business_type?: string
-  client_phone?: string
-  client_email?: string
-  client_line_id?: string
-  property_address?: string
-  building_id?: string
-  lat?: number
-  lng?: number
-  status?: ProjectStatus
-  step_number?: number
-  priority?: ProjectPriority
-  system_size_kwp?: number
-  panel_count?: number
-  panel_model?: string
-  inverter_model?: string
-  battery_model?: string
-  annual_production?: number
-  deal_value?: number
-  deal_type?: DealType
-  monthly_consumption?: number
-  electricity_rate?: number
-  payback_years?: number
-  roof_type?: string
-  roof_condition?: string
-  roof_area_m2?: number
-  usable_area_m2?: number
-  roof_angle?: number
-  roof_direction?: string
-  electrical_phase?: string
-  shading_notes?: string
-  source?: string
-  assigned_to?: string
-  notes?: string
-  created_by?: string
 }
 
 export interface ActivityEntry {

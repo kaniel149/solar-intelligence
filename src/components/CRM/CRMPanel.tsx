@@ -96,7 +96,7 @@ export function CRMPanel() {
       </div>
 
       {/* Project list */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+      <div className="flex-1 overflow-y-auto scrollbar-thin p-3 space-y-2">
         {loading ? (
           <div className="text-white/40 text-xs text-center py-8">Loading projects...</div>
         ) : filtered.length === 0 ? (
@@ -174,24 +174,27 @@ function ProjectCard({
             <ChevronRight size={10} className={`transition-transform ${showStatusMenu ? 'rotate-90' : ''}`} />
           </button>
           {showStatusMenu && (
-            <div className="absolute right-0 top-full mt-1 bg-[#0D2137] border border-white/10 rounded-lg py-1 z-10 min-w-[140px] shadow-xl">
-              {CRM_STATUSES.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => {
-                    onStatusChange(project.id, s.id)
-                    setShowStatusMenu(false)
-                  }}
-                  className={`w-full px-3 py-1.5 text-left text-[11px] hover:bg-white/5 flex items-center gap-2 ${
-                    project.status === s.id ? 'font-bold' : ''
-                  }`}
-                  style={{ color: s.color }}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: s.color }} />
-                  {s.labelShort}
-                </button>
-              ))}
-            </div>
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setShowStatusMenu(false)} />
+              <div className="absolute right-0 top-full mt-1 bg-[#0D2137] border border-white/10 rounded-lg py-1 z-20 min-w-[140px] shadow-xl">
+                {CRM_STATUSES.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => {
+                      onStatusChange(project.id, s.id)
+                      setShowStatusMenu(false)
+                    }}
+                    className={`w-full px-3 py-1.5 text-left text-[11px] hover:bg-white/5 flex items-center gap-2 ${
+                      project.status === s.id ? 'font-bold' : ''
+                    }`}
+                    style={{ color: s.color }}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: s.color }} />
+                    {s.labelShort}
+                  </button>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>

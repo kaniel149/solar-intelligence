@@ -11,7 +11,7 @@ import {
   getProjectActivity, logActivity, deleteProject, getCrmProjects
 } from '../../lib/crm-service'
 import { CRM_STATUSES, STATUS_MAP } from '../../types/crm'
-import type { CrmProject, ProjectStatus, ActivityEntry } from '../../types/crm'
+import type { CrmProject, CrmProjectInsert, ProjectStatus, ActivityEntry } from '../../types/crm'
 import { ActivityTimeline } from './ActivityTimeline'
 import { ChecklistPanel } from './ChecklistPanel'
 
@@ -30,29 +30,35 @@ export default function LeadDetail() {
   const [saving, setSaving] = useState(false)
   const [notes, setNotes] = useState('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   // Load project + activity
   useEffect(() => {
     if (!id) return
+    let stale = false
     setLoading(true)
 
-    // Try from store first, then fetch
     const fromStore = crmProjects.find((p) => p.id === id)
     if (fromStore) {
       setProject(fromStore)
       setNotes(fromStore.notes || '')
-      setLoading(false)
     }
 
-    getCrmProject(id).then((p) => {
+    Promise.all([
+      getCrmProject(id),
+      getProjectActivity(id),
+    ]).then(([p, acts]) => {
+      if (stale) return
       if (p) {
         setProject(p)
         setNotes(p.notes || '')
       }
-      setLoading(false)
+      setActivities(acts)
+    }).finally(() => {
+      if (!stale) setLoading(false)
     })
 
-    getProjectActivity(id).then(setActivities)
+    return () => { stale = true }
   }, [id])
 
   const handleStatusChange = async (status: ProjectStatus) => {
@@ -77,19 +83,18 @@ export default function LeadDetail() {
   const handleSaveEdit = async () => {
     if (!project) return
     setSaving(true)
-    const editable = {
-      client_name: editData.client_name,
-      business_type: editData.business_type,
-      client_phone: editData.client_phone,
-      client_email: editData.client_email,
-      client_line_id: (editData as any).client_line_id,
-      property_address: editData.property_address,
+    const editable: Partial<CrmProjectInsert> = {
+      client_name: editData.client_name ?? undefined,
+      business_type: editData.business_type ?? undefined,
+      client_phone: editData.client_phone ?? undefined,
+      client_email: editData.client_email ?? undefined,
+      client_line_id: editData.client_line_id ?? undefined,
+      property_address: editData.property_address ?? undefined,
     }
-    // Remove undefined values
     const cleaned = Object.fromEntries(
       Object.entries(editable).filter(([, v]) => v !== undefined)
-    )
-    await updateProject(project.id, cleaned as any)
+    ) as Partial<CrmProjectInsert>
+    await updateProject(project.id, cleaned)
     setProject({ ...project, ...editData } as CrmProject)
     setEditing(false)
     setEditData({})
@@ -107,8 +112,13 @@ export default function LeadDetail() {
   }
 
   const handleDelete = async () => {
-    if (!project) return
-    await deleteProject(project.id)
+    if (!project || deleting) return
+    setDeleting(true)
+    const success = await deleteProject(project.id)
+    if (!success) {
+      setDeleting(false)
+      return
+    }
     const updated = await getCrmProjects()
     setCrmProjects(updated)
     navigate('/crm/pipeline')
@@ -173,21 +183,24 @@ export default function LeadDetail() {
             />
           </button>
           {showStatusMenu && (
-            <div className="absolute right-0 top-full mt-2 bg-[#0D2137] border border-white/10 rounded-xl py-1 z-20 min-w-[180px] shadow-2xl">
-              {CRM_STATUSES.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => handleStatusChange(s.id)}
-                  className={`w-full px-3 py-2 text-left text-xs hover:bg-white/5 flex items-center gap-2 ${
-                    project.status === s.id ? 'font-bold' : ''
-                  }`}
-                  style={{ color: s.color }}
-                >
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
-                  {s.step}. {s.label}
-                </button>
-              ))}
-            </div>
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setShowStatusMenu(false)} />
+              <div className="absolute right-0 top-full mt-2 bg-[#0D2137] border border-white/10 rounded-xl py-1 z-20 min-w-[180px] shadow-2xl">
+                {CRM_STATUSES.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => handleStatusChange(s.id)}
+                    className={`w-full px-3 py-2 text-left text-xs hover:bg-white/5 flex items-center gap-2 ${
+                      project.status === s.id ? 'font-bold' : ''
+                    }`}
+                    style={{ color: s.color }}
+                  >
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
+                    {s.step}. {s.label}
+                  </button>
+                ))}
+              </div>
+            </>
           )}
         </div>
 
@@ -225,7 +238,7 @@ export default function LeadDetail() {
       </div>
 
       {/* Main Content */}
-      <div className="p-6 grid grid-cols-5 gap-6">
+      <div className="p-6 grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Left Column (3/5) */}
         <div className="col-span-3 space-y-5">
           {/* Client Info */}
@@ -260,8 +273,8 @@ export default function LeadDetail() {
                 />
                 <EditField
                   label="LINE ID"
-                  value={(editData as any).client_line_id || ''}
-                  onChange={(v) => setEditData({ ...editData, client_line_id: v } as any)}
+                  value={editData.client_line_id || ''}
+                  onChange={(v) => setEditData({ ...editData, client_line_id: v })}
                 />
                 <EditField
                   label="Address"
@@ -311,7 +324,7 @@ export default function LeadDetail() {
                   icon={<MessageCircle size={12} />}
                   label="LINE"
                   value={project.client_line_id || '—'}
-                  href={project.client_line_id ? `https://line.me/R/ti/p/${project.client_line_id}` : undefined}
+                  href={project.client_line_id ? `https://line.me/R/ti/p/${encodeURIComponent(project.client_line_id)}` : undefined}
                 />
                 <InfoRow
                   icon={<Map size={12} />}
@@ -469,7 +482,7 @@ export default function LeadDetail() {
 
             {project.client_line_id && (
               <a
-                href={`https://line.me/R/ti/p/${project.client_line_id}`}
+                href={`https://line.me/R/ti/p/${encodeURIComponent(project.client_line_id)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-[#00C300]/10 text-[#00C300] text-xs font-semibold hover:bg-[#00C300]/20 transition-colors"
@@ -597,9 +610,10 @@ export default function LeadDetail() {
             <div className="flex gap-2">
               <button
                 onClick={handleDelete}
-                className="flex-1 py-2 rounded-xl bg-red-500/20 text-red-400 text-xs font-semibold hover:bg-red-500/30 transition-colors"
+                disabled={deleting}
+                className="flex-1 py-2 rounded-xl bg-red-500/20 text-red-400 text-xs font-semibold hover:bg-red-500/30 transition-colors disabled:opacity-50"
               >
-                Delete
+                {deleting ? 'Deleting...' : 'Delete'}
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(false)}

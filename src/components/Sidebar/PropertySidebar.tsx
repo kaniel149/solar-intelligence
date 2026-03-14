@@ -637,7 +637,7 @@ function CrmPushButton({ property }: { property: import('../../types').Property 
   const [pushedProjectId, setPushedProjectId] = useState<string | null>(null)
   const [error, setError] = useState('')
 
-  const alreadyInCrm = crmBuildingIds.has(property.id)
+  const alreadyInCrm = !!crmBuildingIds[property.id]
 
   useEffect(() => {
     setPushed(false)
