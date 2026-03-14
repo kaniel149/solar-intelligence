@@ -5,12 +5,20 @@ import { useAppStore } from '../../lib/store'
 import { useFilteredProperties } from '../../hooks/useFilteredProperties'
 import { REGIONS } from '../../lib/regions'
 
-const TILE_SOURCES = {
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || ''
+
+const TILE_SOURCES: Record<string, string[]> = {
   satellite: [
     'https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
     'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
     'https://mt2.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
     'https://mt3.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+  ],
+  mapbox: [
+    `https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}@2x.jpg90?access_token=${MAPBOX_TOKEN}`,
+  ],
+  esri: [
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   ],
   street: [
     'https://tile.openstreetmap.org/{z}/{x}/{y}.png',

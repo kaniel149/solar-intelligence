@@ -1,4 +1,4 @@
-import { Search, Map, Satellite, Zap, ZapOff, SlidersHorizontal, X, Circle, Building2, LogIn, LogOut } from 'lucide-react'
+import { Search, Map, Satellite, Globe, Zap, ZapOff, SlidersHorizontal, X, Circle, Building2, LogIn, LogOut } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAppStore } from '../../lib/store'
@@ -39,7 +39,7 @@ export function FilterBar() {
   const setRegion = useAppStore((s) => s.setRegion)
   const setActiveTab = useAppStore((s) => s.setActiveTab)
   const mapStyle = useAppStore((s) => s.mapStyle)
-  const toggleMapStyle = useAppStore((s) => s.toggleMapStyle)
+  const cycleMapStyle = useAppStore((s) => s.cycleMapStyle)
   const stats = useAppStore((s) => s.stats)
   const user = useAppStore((s) => s.user)
   const setShowLoginModal = useAppStore((s) => s.setShowLoginModal)
@@ -112,11 +112,14 @@ export function FilterBar() {
         {/* Map controls + filter toggle */}
         <div className="bg-[#0D2137]/90 backdrop-blur-xl rounded-xl border border-white/10 flex overflow-hidden">
           <button
-            onClick={toggleMapStyle}
-            className="px-3 py-2.5 text-white/60 hover:text-white hover:bg-white/5 transition-colors"
-            title={mapStyle === 'satellite' ? 'Switch to Street' : 'Switch to Satellite'}
+            onClick={cycleMapStyle}
+            className="px-3 py-2.5 text-white/60 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-1.5"
+            title={{ mapbox: 'Mapbox Satellite (HD)', satellite: 'Google Satellite', esri: 'ESRI World Imagery', street: 'Street Map' }[mapStyle]}
           >
-            {mapStyle === 'satellite' ? <Map size={14} /> : <Satellite size={14} />}
+            {mapStyle === 'street' ? <Map size={14} /> : mapStyle === 'mapbox' ? <Globe size={14} /> : <Satellite size={14} />}
+            <span className="text-[10px] font-medium uppercase tracking-wider hidden sm:inline">
+              {{ mapbox: 'Mapbox', satellite: 'Google', esri: 'ESRI', street: 'Street' }[mapStyle]}
+            </span>
           </button>
           <button
             onClick={() => setFilter('showGrid', !filters.showGrid)}
