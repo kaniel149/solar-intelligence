@@ -213,6 +213,9 @@ function ProjectCard({
             <Mail size={9} />
           </a>
         )}
+        {project.client_line_id && (
+          <span className="text-[#00C300]">LINE</span>
+        )}
       </div>
 
       {project.priority === 'urgent' || project.priority === 'high' ? (

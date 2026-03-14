@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft, ChevronRight, Map, Phone, Mail, MessageCircle,
   Edit3, Save, Sun, DollarSign, Zap, Building2,
-  Trash2
+  Trash2, ClipboardCheck
 } from 'lucide-react'
 import { useAppStore } from '../../lib/store'
 import {
@@ -13,6 +13,7 @@ import {
 import { CRM_STATUSES, STATUS_MAP } from '../../types/crm'
 import type { CrmProject, ProjectStatus, ActivityEntry } from '../../types/crm'
 import { ActivityTimeline } from './ActivityTimeline'
+import { ChecklistPanel } from './ChecklistPanel'
 
 export default function LeadDetail() {
   const { id } = useParams<{ id: string }>()
@@ -81,6 +82,7 @@ export default function LeadDetail() {
       business_type: editData.business_type,
       client_phone: editData.client_phone,
       client_email: editData.client_email,
+      client_line_id: (editData as any).client_line_id,
       property_address: editData.property_address,
     }
     // Remove undefined values
@@ -257,6 +259,11 @@ export default function LeadDetail() {
                   onChange={(v) => setEditData({ ...editData, client_email: v })}
                 />
                 <EditField
+                  label="LINE ID"
+                  value={(editData as any).client_line_id || ''}
+                  onChange={(v) => setEditData({ ...editData, client_line_id: v } as any)}
+                />
+                <EditField
                   label="Address"
                   value={editData.property_address || ''}
                   onChange={(v) => setEditData({ ...editData, property_address: v })}
@@ -299,6 +306,12 @@ export default function LeadDetail() {
                   label="Email"
                   value={project.client_email || '—'}
                   href={project.client_email ? `mailto:${project.client_email}` : undefined}
+                />
+                <InfoRow
+                  icon={<MessageCircle size={12} />}
+                  label="LINE"
+                  value={project.client_line_id || '—'}
+                  href={project.client_line_id ? `https://line.me/R/ti/p/${project.client_line_id}` : undefined}
                 />
                 <InfoRow
                   icon={<Map size={12} />}
@@ -454,6 +467,18 @@ export default function LeadDetail() {
               </Link>
             )}
 
+            {project.client_line_id && (
+              <a
+                href={`https://line.me/R/ti/p/${project.client_line_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-[#00C300]/10 text-[#00C300] text-xs font-semibold hover:bg-[#00C300]/20 transition-colors"
+              >
+                <MessageCircle size={14} />
+                LINE
+              </a>
+            )}
+
             {project.client_phone && (
               <>
                 <a
@@ -493,6 +518,15 @@ export default function LeadDetail() {
               <Trash2 size={14} />
               Delete Lead
             </button>
+          </div>
+
+          {/* Pipeline Checklist */}
+          <div className="bg-white/5 rounded-2xl border border-white/10 p-4">
+            <h3 className="text-xs font-semibold text-white/70 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <ClipboardCheck size={12} />
+              Pipeline Checklist
+            </h3>
+            <ChecklistPanel project={project} />
           </div>
 
           {/* Project Meta */}

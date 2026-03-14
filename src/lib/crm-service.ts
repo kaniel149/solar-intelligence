@@ -6,6 +6,8 @@ import type {
   CrmStats,
   ProjectStatus,
   ActivityEntry,
+  ProjectChecklist,
+  PipelineFilters,
 } from '../types/crm'
 
 // ── Push building from scanner to CRM ──
@@ -246,6 +248,91 @@ export async function findByBuildingId(buildingId: string): Promise<CrmProject |
     .limit(1)
 
   return (data?.[0] as CrmProject) || null
+}
+
+// ── Checklist operations ──
+export async function getProjectChecklists(projectId: string): Promise<ProjectChecklist[]> {
+  if (!supabase) return []
+
+  const { data } = await supabase
+    .from('project_checklists')
+    .select('*')
+    .eq('project_id', projectId)
+
+  return (data || []) as ProjectChecklist[]
+}
+
+export async function toggleChecklistItem(
+  projectId: string,
+  checklistItemId: string,
+  completed: boolean
+): Promise<boolean> {
+  if (!supabase) return false
+
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { error } = await supabase
+    .from('project_checklists')
+    .upsert({
+      project_id: projectId,
+      checklist_item_id: checklistItemId,
+      completed,
+      completed_at: completed ? new Date().toISOString() : null,
+      completed_by: completed ? user?.id || null : null,
+    }, {
+      onConflict: 'project_id,checklist_item_id',
+    })
+
+  if (error) {
+    console.error('Checklist toggle failed:', error)
+    return false
+  }
+
+  await logActivity(projectId, 'checklist_updated', {
+    item: checklistItemId,
+    completed,
+  })
+  return true
+}
+
+// ── Filter projects client-side ──
+export function filterProjects(projects: CrmProject[], filters: PipelineFilters): CrmProject[] {
+  return projects.filter((p) => {
+    // Search
+    if (filters.search) {
+      const q = filters.search.toLowerCase()
+      const match =
+        p.client_name.toLowerCase().includes(q) ||
+        p.property_address?.toLowerCase().includes(q) ||
+        p.business_type?.toLowerCase().includes(q) ||
+        p.client_phone?.includes(q) ||
+        p.client_email?.toLowerCase().includes(q) ||
+        p.client_line_id?.toLowerCase().includes(q)
+      if (!match) return false
+    }
+
+    // Status
+    if (filters.status !== 'all' && p.status !== filters.status) return false
+
+    // Priority
+    if (filters.priority !== 'all' && p.priority !== filters.priority) return false
+
+    // Source
+    if (filters.source !== 'all' && p.source !== filters.source) return false
+
+    // Business type
+    if (filters.businessType !== 'all' && p.business_type !== filters.businessType) return false
+
+    // Date range
+    if (filters.dateRange !== 'all') {
+      const now = Date.now()
+      const created = new Date(p.created_at).getTime()
+      const days = filters.dateRange === '7d' ? 7 : filters.dateRange === '30d' ? 30 : 90
+      if (now - created > days * 86400000) return false
+    }
+
+    return true
+  })
 }
 
 export { isCrmConnected }
